@@ -54,7 +54,7 @@ def notion_create_page_in_database_API_runner(
 
 if __name__ == "__main__":
     # 從環境變數讀取
-    NOTION_TOKEN = "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"
+    NOTION_TOKEN = "secret_123"
     NOTION_DATABASE_ID = "1fff918a-e5ea-8062-a5a0-e2378e610e24"
 
     if not NOTION_TOKEN or not NOTION_DATABASE_ID:
