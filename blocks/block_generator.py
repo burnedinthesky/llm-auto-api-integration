@@ -87,7 +87,10 @@ class BlockGenerator:
             if any(line.startswith(f"{self.app_id.upper()}_API_KEY=") for line in lines):
                 print("API 金鑰已存在於 .env 檔案中。")
                 return
-        print("API 金鑰已儲存到 .env 檔案中。")
+            else:
+                with open('.env', 'a') as f:
+                    f.write(f"{self.app_id.upper()}_API_KEY={api_key}\n")
+                print("API 金鑰已儲存到 .env 檔案中。")
     
     def set_system_prompt(self, system_prompt: str) -> None:
         """
