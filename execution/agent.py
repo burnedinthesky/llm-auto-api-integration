@@ -3,7 +3,14 @@ import openai
 from typing import Any, Dict
 import json
 
-from execution.tools import GenerateAppTool, LLMTool, ExecuteCodeTool, ListAppTool
+from execution.tools import (
+    GenerateAppTool,
+    LLMTool,
+    ExecuteCodeTool,
+    ListAppTool,
+    ImportAppTool,
+)
+from execution.runtime import Runtime
 
 from .prompts import (
     EXECUTION_USER,
@@ -31,10 +38,14 @@ class Agent:
         self.model: str = model
         self.plan: str = ""
 
+        # Create a shared runtime instance
+        self.runtime = Runtime()
+
         self.tools: Dict[str, LLMTool] = {
-            "execute_code": ExecuteCodeTool(),
+            "execute_code": ExecuteCodeTool(self.runtime),
             "generate_app": GenerateAppTool(openai_api_key),
             "list_apps": ListAppTool(),
+            "import_app": ImportAppTool(self.runtime),
         }
         self.tool_descs: list[dict[str, Any]] = [
             tool.get_tool_desc() for tool in self.tools.values()
@@ -163,26 +174,27 @@ class Agent:
         Runs the agent's three-step process: Generate, Revise, Execute.
         """
 
-        self._generate_plan(task_description)
-        print("AI: Initial plan generated:")
-        print(self.plan)
+        # self._generate_plan(task_description)
+        # print("AI: Initial plan generated:")
+        # print(self.plan)
 
-        while True:
-            user_input = input(
-                "USER: Review the plan. Type 'go' to approve, or provide feedback to revise: "
-            )
-            if user_input.lower() == "go":
-                print("AI: Plan approved by user.")
-                break
-            elif user_input.lower() == "exit":
-                print("AI: Exiting without execution.")
-                return
-            else:
-                self._revise_plan(user_input)
-                print("AI: Plan revised:")
-                print(self.plan)
+        # while True:
+        #     user_input = input(
+        #         "USER: Review the plan. Type 'go' to approve, or provide feedback to revise: "
+        #     )
+        #     if user_input.lower() == "go":
+        #         print("AI: Plan approved by user.")
+        #         break
+        #     elif user_input.lower() == "exit":
+        #         print("AI: Exiting without execution.")
+        #         return
+        #     else:
+        #         self._revise_plan(user_input)
+        #         print("AI: Plan revised:")
+        #         print(self.plan)
 
         try:
+            self.plan = "List all apps and import Notion into the runtime"
             self._execute_plan()
         except Exception as e:
             print(
@@ -203,5 +215,6 @@ if __name__ == "__main__":
 
     agent = Agent(openai_api_key=api_key)
 
-    task = input("What's your task? ")
+    # task = input("What's your task? ")
+    task = ""
     agent.run(task)

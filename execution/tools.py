@@ -76,14 +76,18 @@ class ListAppTool(LLMTool):
         }
 
     def execute(self):
+        # Get the absolute path to the blocks directory
+        project_root = Path(__file__).resolve().parent.parent
+        blocks_dir = project_root / "blocks"
+
         apps = []
-        for file in glob.glob("./blocks/*.py"):
-            # Convert file path to module name
-            module_name = file.replace("/", ".").replace("\\", ".").replace(".py", "")
-            while module_name.startswith("."):
-                module_name = module_name[1:]  # Remove leading dot
-            if "block_generator" in module_name:
+        for file_path in blocks_dir.glob("*.py"):
+            if "block_generator" in file_path.name:
                 continue
+
+            # Convert file path to module name
+            module_name = f"blocks.{file_path.stem}"
+
             try:
                 module = importlib.import_module(module_name, package=None)
                 class_name = ""
@@ -105,7 +109,7 @@ class ListAppTool(LLMTool):
 
 
 class ExecuteCodeTool(LLMTool):
-    def __init__(self):
+    def __init__(self, runtime: Runtime = None):
         self.name = "execute_code"
         self.description = "Execute Python code in a jupyter notebook. The same kernel is through all calls."
         self.parameters = {
@@ -120,7 +124,7 @@ class ExecuteCodeTool(LLMTool):
             "additionalProperties": False,
         }
 
-        self.runtime = Runtime()
+        self.runtime = runtime if runtime else Runtime()
 
     def get_tool_desc(self):
         return {
@@ -134,3 +138,71 @@ class ExecuteCodeTool(LLMTool):
     def execute(self, code: str) -> str:
         result = self.runtime.execute_code(code)
         return "\n".join([str(r) for r in result])
+
+
+class ImportAppTool(LLMTool):
+    def __init__(self, runtime: Runtime = None):
+        self.name = "import_app"
+        self.description = "Import a generated app tool into the jupyter runtime to make it available for use in code execution."
+        self.parameters = {
+            "type": "object",
+            "properties": {
+                "app_name": {
+                    "type": "string",
+                    "description": "The name of the app to import (as shown by list_apps).",
+                }
+            },
+            "required": ["app_name"],
+            "additionalProperties": False,
+        }
+
+        self.runtime = runtime if runtime else Runtime()
+
+    def get_tool_desc(self):
+        return {
+            "type": "function",
+            "name": self.name,
+            "description": self.description,
+            "parameters": self.parameters,
+            "strict": True,
+        }
+
+    def execute(self, app_name: str) -> str:
+        # Get the absolute path to the blocks directory
+        project_root = Path(__file__).resolve().parent.parent
+        blocks_dir = project_root / "blocks"
+
+        # Find the module file for the app
+        for file_path in blocks_dir.glob("*.py"):
+            if "block_generator" in file_path.name:
+                continue
+
+            # Convert file path to module name
+            module_name = f"blocks.{file_path.stem}"
+
+            try:
+                # Import temporarily to check the app_id
+                module = importlib.import_module(module_name, package=None)
+                for name, obj in inspect.getmembers(module):
+                    if inspect.isclass(obj) and hasattr(obj, "app_id"):
+                        if obj.app_id == app_name:
+                            # Found the right app, now import it into the runtime
+                            import_code = f"""
+import sys
+# Add project root to sys.path if not already there
+project_root = '{project_root}'
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+from {module_name} import {name}
+
+# Make the class available in the runtime
+globals()['{name}'] = {name}
+print(f"Successfully imported {name} class for app '{app_name}'")
+print(f"To use it, create an instance: {app_name.replace('.', '_')} = {name}(api_key='your_key')")
+"""
+                            result = self.runtime.execute_code(import_code)
+                            return "\n".join([str(r) for r in result])
+            except Exception as e:
+                continue
+
+        return f"Error: Could not find app with name '{app_name}'. Use list_apps to see available apps."
