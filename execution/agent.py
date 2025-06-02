@@ -1,11 +1,10 @@
 import os
 import openai
-from typing import Any, Dict, Optional
+from typing import Any, Dict
 import json
 
-from execution.tools import LLMTool, ExecuteCodeTool
+from execution.tools import GenerateAppTool, LLMTool, ExecuteCodeTool
 
-from .runtime import Runtime
 from .prompts import (
     EXECUTION_USER,
     PLANNING_USER,
@@ -16,7 +15,7 @@ from .prompts import (
 class Agent:
     def __init__(
         self,
-        openai_api_key: Optional[str] = None,
+        openai_api_key: str,
         model: str = "gpt-4.1",
     ):
         """
@@ -34,6 +33,7 @@ class Agent:
 
         self.tools: Dict[str, LLMTool] = {
             "execute_code": ExecuteCodeTool(),
+            "generate_app": GenerateAppTool(openai_api_key),
         }
         self.tool_descs: list[dict[str, Any]] = [
             tool.get_tool_desc() for tool in self.tools.values()
@@ -124,7 +124,7 @@ class Agent:
                         self.execution_messages.append(
                             {
                                 "role": "user",
-                                "content": f"Unknown tool: {function_name}",
+                                "content": f"Unknown tool Error: {function_name}",
                             }
                         )
                         continue
@@ -198,7 +198,11 @@ if __name__ == "__main__":
 
     print("AI: Initializing agent...")
 
-    agent = Agent(openai_api_key=os.getenv("OPENAI_API_KEY"))
+    api_key = os.getenv("OPENAI_API_KEY")
+    if not api_key:
+        raise ValueError("OPENAI_API_KEY is not set")
+
+    agent = Agent(openai_api_key=api_key)
 
     task = input("What's your task? ")
     agent.run(task)
