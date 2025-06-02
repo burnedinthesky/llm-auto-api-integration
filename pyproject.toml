@@ -8,4 +8,6 @@ dependencies = [
     "openai>=1.77.0",
     "python-dotenv>=1.0.0",
     "PyQt6>=6.6.1",
+    "jupyter-client>=8.6.3",
+    "jupyterlab>=4.4.3",
 ]
