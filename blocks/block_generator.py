@@ -2,7 +2,7 @@ import os
 from typing import Dict, Any
 from dotenv import load_dotenv
 from openai import OpenAI
-
+from exception.missing_api_key_error import MissingAPIKeyError
 
 class BlockGenerator:
     """
@@ -14,7 +14,7 @@ class BlockGenerator:
         初始化 OpenAI 客戶端
         """
 
-        self.app_id = "com.openai"
+        self.app_id = "openai"
         self.system_prompt = self._get_default_system_prompt()
         self.api_key = self._get_api_key()
         self.client = OpenAI(api_key=self.api_key)
@@ -45,52 +45,24 @@ class BlockGenerator:
     
     def _get_api_key(self) -> str:
         """
-        從 .env 檔案獲取 OpenAI API 金鑰
+        從 .env 檔案獲取 API 金鑰
         
         Returns:
-            str: OpenAI API 金鑰
+            str: API 金鑰
         
         Raises:
-            ValueError: 如果未找到有效的 API 金鑰
+            MissingAPIKeyError: 如果未找到有效的 API 金鑰
         """
         # 載入 .env 檔案
         load_dotenv()
         
         # 嘗試從環境變數獲取 API 金鑰
         api_key = os.getenv(self.app_id.upper() + '_API_KEY')
-        
-        if not api_key or api_key == 'your_openai_api_key_here':
-            api_key = input(
-                "未找到有效的 OpenAI API 金鑰。請在 .env 檔案中設定 OPENAI_API_KEY，"
-                "或到 https://platform.openai.com/api-keys 獲取您的 API 金鑰，"
-                "並輸入您的 API 金鑰: "
-            )
-            self._save_api_key(api_key)
+
+        if not api_key:
+            raise MissingAPIKeyError(f"{self.app_id.upper()}_API_KEY")
         
         return api_key
-    
-    def _save_api_key(self, api_key: str) -> None:
-        """
-        儲存 API 金鑰到 .env 檔案
-        
-        Args:
-            api_key (str): OpenAI API 金鑰
-        """
-        # 檢查 .env 檔案是否存在
-        if not os.path.exists('.env'):
-            with open('.env', 'w') as f:
-                f.write(f"{self.app_id.upper()}_API_KEY={api_key}\n")
-        else:
-            # 檢查是否已經存在相同的 API 金鑰
-            with open('.env', 'r') as f:
-                lines = f.readlines()
-            if any(line.startswith(f"{self.app_id.upper()}_API_KEY=") for line in lines):
-                print("API 金鑰已存在於 .env 檔案中。")
-                return
-            else:
-                with open('.env', 'a') as f:
-                    f.write(f"{self.app_id.upper()}_API_KEY={api_key}\n")
-                print("API 金鑰已儲存到 .env 檔案中。")
     
     def set_system_prompt(self, system_prompt: str) -> None:
         """
@@ -117,6 +89,9 @@ class BlockGenerator:
         Returns:
             str: AI 的回應
         """
+        if not self.api_key:
+            raise MissingAPIKeyError(f"OPENAI_API_KEY")
+        
         model = "o4-mini"
         try:
             # 建立訊息列表
