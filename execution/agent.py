@@ -3,7 +3,7 @@ import openai
 from typing import Any, Dict
 import json
 
-from execution.tools import GenerateAppTool, LLMTool, ExecuteCodeTool
+from execution.tools import GenerateAppTool, LLMTool, ExecuteCodeTool, ListAppTool
 
 from .prompts import (
     EXECUTION_USER,
@@ -34,6 +34,7 @@ class Agent:
         self.tools: Dict[str, LLMTool] = {
             "execute_code": ExecuteCodeTool(),
             "generate_app": GenerateAppTool(openai_api_key),
+            "list_apps": ListAppTool(),
         }
         self.tool_descs: list[dict[str, Any]] = [
             tool.get_tool_desc() for tool in self.tools.values()
@@ -166,7 +167,6 @@ class Agent:
         print("AI: Initial plan generated:")
         print(self.plan)
 
-        # 2. Revise Plan (with user interaction loop)
         while True:
             user_input = input(
                 "USER: Review the plan. Type 'go' to approve, or provide feedback to revise: "
@@ -182,7 +182,6 @@ class Agent:
                 print("AI: Plan revised:")
                 print(self.plan)
 
-        # 3. Execute Plan
         try:
             self._execute_plan()
         except Exception as e:

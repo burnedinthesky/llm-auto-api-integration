@@ -171,3 +171,7 @@ cython_debug/
 .pypirc
 
 .venv*
+
+
+blocks/
+!blocks/block_generator.py
