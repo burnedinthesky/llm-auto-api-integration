@@ -8,9 +8,14 @@ This project uses the [uv](https://docs.astral.sh/uv/) package manager, if you h
 
 After installing uv, simply run `uv sync` to create a virtual environment that has all required packages installed.
 
+To start the app, run `uv run main.py`.
+
+On first launch, you’ll be prompted in the terminal to enter your **OpenAI API key**.
+
 ## programming
 ### generate block
 Use blocks/block_generator.py to generate a block. The parameter is a natural language string. For example
 ```python
-print(BlockGenerator().generate_block("幫助我生成一個能夠讓 discord 發送訊息到我的頻道的 block。"))
+print(BlockGenerator("token").generate_and_save_block("幫助我生成一個能夠讓 discord 發送訊息到我的頻道的 block。"))
 ```
+It will return the filename.
